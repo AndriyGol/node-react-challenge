@@ -1,5 +1,5 @@
 ## git 
-`git init` to track my own changes.
+`git init` to track my own changes. The track of changes can be found in git history.
 
 ## Docker
 Rough docker config. The application can be ran:
