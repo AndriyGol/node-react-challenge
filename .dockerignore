@@ -1,0 +1,16 @@
+node_modules/
+Dockerfile
+dist/
+.idea/
+.vscode/
+*.md
+# Ignore log files
+*.log
+
+# Ignore build directories
+dist/
+build/
+
+# should be ignored
+# .env
+
