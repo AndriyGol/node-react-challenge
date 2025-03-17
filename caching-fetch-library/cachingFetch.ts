@@ -1,13 +1,25 @@
+import { useState, useEffect } from 'react';
+
 // You may edit this file, add new files to support this file,
 // and/or add new dependencies to the project as you see fit.
 // However, you must not change the surface API presented from this file,
 // and you should not need to change any other files in the project to complete the challenge
 
-type UseCachingFetch = (url: string) => {
+// extracted the return type from UseCachingFetch to make the code more readable
+type CachedData = {
   isLoading: boolean;
   data: unknown;
   error: Error | null;
 };
+
+type UseCachingFetch = (url: string) => CachedData;
+
+// cache variables
+// Ideally, should store them in a object: { [url] : data: unknown }
+let _data:unknown | null = null;
+let _isLoading = false;
+let _error:Error | null = null;
+
 
 /**
  * 1. Implement a caching fetch hook. The hook should return an object with the following properties:
@@ -28,12 +40,31 @@ type UseCachingFetch = (url: string) => {
  *
  */
 export const useCachingFetch: UseCachingFetch = (url) => {
+
+  const [, setFetchedData] = useState({
+    isLoading: _isLoading,
+    data:_data,
+    error:_error
+  } as CachedData);
+  
+  useEffect(() => {
+    // reuse preloadCachingFetch to fetch data
+    preloadCachingFetch(url).then(() => {
+      setFetchedData({
+        isLoading: _isLoading,
+        data: _data,
+        error: _error
+      });
+    });
+    return () => {
+      // consider cleanup
+    };
+  }, []);
+
   return {
-    data: null,
-    isLoading: false,
-    error: new Error(
-      'UseCachingFetch has not been implemented, please read the instructions in DevTask.md',
-    ),
+    isLoading: _isLoading,
+    data: _data,
+    error: _error
   };
 };
 
@@ -52,9 +83,25 @@ export const useCachingFetch: UseCachingFetch = (url) => {
  *
  */
 export const preloadCachingFetch = async (url: string): Promise<void> => {
-  throw new Error(
-    'preloadCachingFetch has not been implemented, please read the instructions in DevTask.md',
-  );
+  // console.log('--------------------> preloadCachingFetch', url, _data, _isLoading, _error);
+  if (_data || _isLoading) {
+    // TODO: handle the case when data is falsy
+    return;
+  }
+  try {
+    _data = null;
+    _error = null;
+    _isLoading = true;
+    const resp = await fetch(url);
+    _data = await resp.json();
+  }
+  catch (err) {
+    console.error(err); // TODO use logger
+    _error = Error('Error fetching data');
+  }
+  finally {
+    _isLoading = false;
+  }
 };
 
 /**
@@ -73,8 +120,15 @@ export const preloadCachingFetch = async (url: string): Promise<void> => {
  * 4. This file passes a type-check.
  *
  */
-export const serializeCache = (): string => '';
+export const serializeCache = (): string => { 
+  return JSON.stringify(_data);
+}
+export const initializeCache = (serializedCache: string): void => {
+  _data = JSON.parse(serializedCache);
+};
 
-export const initializeCache = (serializedCache: string): void => {};
-
-export const wipeCache = (): void => {};
+export const wipeCache = (): void => {
+  _data = null;
+  _isLoading = false;
+  _error = null;
+};
