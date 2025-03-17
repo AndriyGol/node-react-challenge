@@ -1,3 +1,4 @@
+import * as dotenv from 'dotenv';
 import Fastify from 'fastify';
 import buildHtmlDoc from './buildHtmlDoc';
 import renderApp from './renderApp';
@@ -5,9 +6,15 @@ import * as fs from 'fs';
 import { startMswServer } from '../mock-server/server';
 import { wipeCache } from '../../caching-fetch-library/cachingFetch';
 
+dotenv.config();
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
 const runServer = async () => {
   // start the msw server
-  await startMswServer();
+  if (process.env.NODE_ENV === 'development') {  
+    await startMswServer();
+    console.log('MSW server started');
+  }
 
   const fastify = Fastify({
     logger: true,
@@ -19,11 +26,19 @@ const runServer = async () => {
     reply.header('content-type', 'text/javascript').send(clientJs);
   });
 
+  if (process.env.NODE_ENV === 'development') {  
+    const mswJs = fs.readFileSync('./dist/mockServiceWorker.js');
+    fastify.get('/mockServiceWorker.js', async (request, reply) => {
+        reply.header('content-type', 'text/javascript').send(mswJs);
+      });
+  }
+  else {
+    fastify.get('/mockServiceWorker.js', async (request, reply) => {
+      reply.header('content-type', 'text/javascript').send('');
+    });
+  }
   // serve the service worker for msw to work in the browser
-  const mswJs = fs.readFileSync('./dist/mockServiceWorker.js');
-  fastify.get('/mockServiceWorker.js', async (request, reply) => {
-    reply.header('content-type', 'text/javascript').send(mswJs);
-  });
+  
 
   // serve a static landing page to provide links to the two versions of the app
   fastify.get('/', async (request, reply) => {
@@ -55,12 +70,12 @@ const runServer = async () => {
       .send(buildHtmlDoc(await renderApp(false)));
   });
 
-  fastify.listen({ port: 3000, host: '::' }, (err, address) => {
+  fastify.listen({ port: process.env.PORT, host: '::' }, (err, address) => {
     if (err) {
       fastify.log.error(err);
       process.exit(1);
     }
-    console.log(`Server is now listening on ${address}`);
+    console.log(`Server is now running in ${process.env.NODE_ENV} and listening on ${address}`);
   });
 };
 
