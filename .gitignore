@@ -30,3 +30,4 @@ jspm_packages/
 .vscode/
 .idea/
 .DS_Store
+mockServer/mockServiceWorker.js
